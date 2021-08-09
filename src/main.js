@@ -12,55 +12,58 @@
 
 const http = require("http");
 
-/**
- * @typedef Post
- * @property {string} id
- * @property {string} title
- * @property {string} content
- */
-
-/**@type {Post[]} */
-const posts = [
-  {
-    id: "1",
-    title: "11",
-    content: "111",
-  },
-  {
-    id: "2",
-    title: "22",
-    content: "222",
-  },
-];
-
-/**@type {Post} */
-const sample = {
-  id: "1",
-  title: "11",
-  content: "111",
-};
-console.log(sample);
+const { routes } = require("./api.js");
 
 const server = http.createServer((req, res) => {
-  const POSTS_ID_REGEX = /^\/posts\/([a-zA-Z0-9-_]+)$/;
-  const postIdRegexResult =
-    (req.url && POSTS_ID_REGEX.exec(req.url)) || undefined;
+  async function main() {
+    const route = routes.find(
+      (_route) =>
+        req.url &&
+        req.method &&
+        _route.url.test(req.url) &&
+        _route.method == req.method
+    );
 
-  if (req.url === "/posts" && req.method === "GET") {
-    res.statusCode = 200;
-    res.end("List of post");
-  } else if (postIdRegexResult) {
-    const postId = postIdRegexResult[1];
+    if (!req.url || !route) {
+      req.statusCode = 404;
+      res.end("Not Found");
+      return;
+    }
 
-    res.statusCode = 200;
-    res.end("Some content of posts");
-  } else if (req.url === "/posts" && req.method === "POST") {
-    res.statusCode = 200;
-    res.end("Creating post");
-  } else {
-    req.statusCode = 404;
-    res.end("page not found");
+    const regexResult = route.url.exec(req.url);
+    if (!regexResult) {
+      req.statusCode = 404;
+      res.end("Not Found");
+      return;
+    }
+
+    /**@type {Object.<string,*> | undefined} */
+    const reqBody =
+      (req.headers["content-type"] === "application/json" &&
+        (await new Promise((resolve, reject) => {
+          req.setEncoding("utf-8");
+          req.on("data", (data) => {
+            try {
+              resolve(JSON.parse(data));
+            } catch {
+              reject(new Error("Ill-formed json"));
+            }
+          });
+        }))) ||
+      undefined;
+
+    const result = await route.callback(regexResult, reqBody);
+    res.statusCode = result.statusCode;
+
+    if (typeof result.body === "string") {
+      res.end(result.body);
+    } else {
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify(result.body));
+    }
   }
+
+  main();
 });
 
 const PORT = 4000;
