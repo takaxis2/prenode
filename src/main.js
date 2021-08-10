@@ -12,7 +12,9 @@
 
 const http = require("http");
 
-const { routes } = require("./api.js");
+import routes from "./api.js";
+
+//const { routes } = require("./api.js");
 
 const server = http.createServer((req, res) => {
   async function main() {

@@ -20,7 +20,8 @@
  * @property {string} content
  */
 
-const fs = require("fs");
+//const fs = require("fs");
+import * as fs from "fs";
 const DB_JSON_FILENAME = "database.json";
 
 /**@returns {Promise<Post[]>} */
@@ -108,4 +109,4 @@ const routes = [
   },
 ];
 
-module.exports = { routes };
+export default { routes };
